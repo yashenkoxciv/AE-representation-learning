@@ -23,6 +23,19 @@ from data.transforms import build_input_transforms
 from sklearn.linear_model import LogisticRegression
 
 
+def extract_features(model, dataloader):
+    zs, labels = [], []
+    with torch.no_grad():
+        for batch_x, batch_y in tqdm(dataloader):
+            batch_z = model.encode(batch_x.to(cfg.MODEL.DEVICE))
+            zs.append(batch_z.cpu().numpy())
+            labels.append(batch_y.numpy())
+    zs = np.concatenate(zs, 0)
+    labels = np.concatenate(labels)
+    return zs, labels
+
+
+
 def main():
     parser = argparse.ArgumentParser(description="PyTorch Template MNIST Inference")
     parser.add_argument(
@@ -58,27 +71,26 @@ def main():
 
     model = build_model(cfg).eval().to(cfg.MODEL.DEVICE)
     model.load_state_dict(torch.load(cfg.TEST.WEIGHT)['model'])
-    # load data
+    # load val data
     i_transform = build_input_transforms(cfg, is_train=False)
-    dataset = ImageFolder(cfg.DATASETS.TEST_ROOT, i_transform)
+    train_dataset = ImageFolder(cfg.DATASETS.TRAIN_ROOT, i_transform)
+    train_loader = DataLoader(
+        train_dataset, batch_size=cfg.TEST.IMS_PER_BATCH, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS
+    )
+    # load val data
+    val_dataset = ImageFolder(cfg.DATASETS.TEST_ROOT, i_transform)
     val_loader = DataLoader(
-        dataset, batch_size=cfg.TEST.IMS_PER_BATCH, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS
+        val_dataset, batch_size=cfg.TEST.IMS_PER_BATCH, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS
     )
 
-    zs, labels = [], []
-    with torch.no_grad():
-        for batch_x, batch_y in tqdm(val_loader):
-            batch_z = model.encode(batch_x.to(cfg.MODEL.DEVICE))
-            zs.append(batch_z.cpu().numpy())
-            labels.append(batch_y.numpy())
+    # get train zs
+    train_zs, train_labels = extract_features(model, train_loader)
+    val_zs, val_labels = extract_features(model, val_loader)
 
-    zs = np.concatenate(zs, 0)
-    labels = np.concatenate(labels)
-
-    #print(zs.shape, zs.dtype)
-    #print(labels.shape, labels.dtype)
-    lc = LogisticRegression(solver='liblinear').fit(zs, labels)
-    print(lc.score(zs, labels))
+    logreg = LogisticRegression(solver='liblinear').fit(train_zs, train_labels)
+    train_acc = logreg.score(train_zs, train_labels)
+    val_acc = logreg.score(val_zs, val_labels)
+    print('Train acc: {0:3.3f}, Val acc: {1:3.3f}'.format(train_acc, val_acc))
 
 
 if __name__ == '__main__':
