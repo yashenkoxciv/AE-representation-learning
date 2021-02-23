@@ -9,6 +9,7 @@ TEST:
 
 DATASETS:
   TRAIN_ROOT: '/home/ahab/datasets/MNIST_ImageFolder/train'
+  TEST_ROOT: '/home/ahab/datasets/MNIST_ImageFolder/test'
 
 OUTPUT_ROOT: '/home/ahab/results/'
 EXPERIMENT_NAME: 'MNIST-baseline'

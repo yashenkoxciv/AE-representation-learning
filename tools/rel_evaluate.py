@@ -7,16 +7,20 @@
 import os
 import sys
 import argparse
+import numpy as np
 from os import mkdir
+from tqdm import tqdm
 
 import torch
 
 sys.path.append('.')
 from config import cfg
 from modeling import build_model
-from data import make_data_loader
 from utils.logger import setup_logger
-from engine.inference import inference
+from torch.utils.data import DataLoader
+from torchvision.datasets import ImageFolder
+from data.transforms import build_input_transforms
+from sklearn.linear_model import LogisticRegression
 
 
 def main():
@@ -41,7 +45,7 @@ def main():
     if output_dir and not os.path.exists(output_dir):
         mkdir(output_dir)
 
-    logger = setup_logger(cfg.EXPERIMENT_NAME, output_dir, 0)
+    logger = setup_logger("template_model", output_dir, 0)
     logger.info("Using {} GPUS".format(num_gpus))
     logger.info(args)
 
@@ -52,11 +56,29 @@ def main():
             logger.info(config_str)
     logger.info("Running with config:\n{}".format(cfg))
 
-    model = build_model(cfg).to(cfg.MODEL.DEVICE)
+    model = build_model(cfg).eval().to(cfg.MODEL.DEVICE)
     model.load_state_dict(torch.load(cfg.TEST.WEIGHT)['model'])
-    val_loader = make_data_loader(cfg, is_train=False)
+    # load data
+    i_transform = build_input_transforms(cfg, is_train=False)
+    dataset = ImageFolder(cfg.DATASETS.TEST_ROOT, i_transform)
+    val_loader = DataLoader(
+        dataset, batch_size=cfg.TEST.IMS_PER_BATCH, shuffle=False, num_workers=cfg.DATALOADER.NUM_WORKERS
+    )
 
-    inference(cfg, model, val_loader)
+    zs, labels = [], []
+    with torch.no_grad():
+        for batch_x, batch_y in tqdm(val_loader):
+            batch_z = model.encode(batch_x.to(cfg.MODEL.DEVICE))
+            zs.append(batch_z.cpu().numpy())
+            labels.append(batch_y.numpy())
+
+    zs = np.concatenate(zs, 0)
+    labels = np.concatenate(labels)
+
+    #print(zs.shape, zs.dtype)
+    #print(labels.shape, labels.dtype)
+    lc = LogisticRegression(solver='liblinear').fit(zs, labels)
+    print(lc.score(zs, labels))
 
 
 if __name__ == '__main__':

@@ -11,8 +11,12 @@ from .datasets.custom import GenerativeImageFolder
 
 
 def build_dataset(cfg, input_transform, reconstruction_transform, is_train=True):
+    if cfg.DATASETS.VALIDATION_ROOT:
+        root = cfg.DATASETS.VALIDATION_ROOT
+    else:
+        root = cfg.DATASETS.TRAIN_ROOT if is_train else cfg.DATASETS.TEST_ROOT
     dataset = GenerativeImageFolder(
-        cfg.DATASETS.TRAIN_ROOT,
+        root,
         input_transform=input_transform,
         reconstruction_transform=reconstruction_transform
     )

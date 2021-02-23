@@ -69,6 +69,7 @@ _C.DATASETS = CfgNode()
 _C.DATASETS.TRAIN_ROOT = ''
 # List of the dataset names for testing, as present in paths_catalog.py
 _C.DATASETS.TEST_ROOT = ''
+_C.DATASETS.VALIDATION_ROOT = ''
 
 # -----------------------------------------------------------------------------
 # DataLoader
