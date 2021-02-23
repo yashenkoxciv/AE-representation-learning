@@ -6,13 +6,17 @@
 
 from torch.utils import data
 
-from .datasets.mnist import MNIST
-from .transforms import build_transforms
+from .transforms import build_input_transforms, build_reconstruction_transforms
+from .datasets.custom import GenerativeImageFolder
 
 
-def build_dataset(transforms, is_train=True):
-    datasets = MNIST(root='./', train=is_train, transform=transforms, download=True)
-    return datasets
+def build_dataset(cfg, input_transform, reconstruction_transform, is_train=True):
+    dataset = GenerativeImageFolder(
+        cfg.DATASETS.TRAIN_ROOT,
+        input_transform=input_transform,
+        reconstruction_transform=reconstruction_transform
+    )
+    return dataset
 
 
 def make_data_loader(cfg, is_train=True):
@@ -23,8 +27,9 @@ def make_data_loader(cfg, is_train=True):
         batch_size = cfg.TEST.IMS_PER_BATCH
         shuffle = False
 
-    transforms = build_transforms(cfg, is_train)
-    datasets = build_dataset(transforms, is_train)
+    input_transforms = build_input_transforms(cfg, is_train)
+    reconstruction_transforms = build_reconstruction_transforms(cfg, is_train)
+    datasets = build_dataset(cfg, input_transforms, reconstruction_transforms, is_train)
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
     data_loader = data.DataLoader(

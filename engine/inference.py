@@ -7,7 +7,8 @@ import logging
 
 from ignite.engine import Events
 from ignite.engine import create_supervised_evaluator
-from ignite.metrics import Accuracy
+from ignite.metrics import Loss
+import torch.nn.functional as F
 
 
 def inference(
@@ -19,14 +20,17 @@ def inference(
 
     logger = logging.getLogger("template_model.inference")
     logger.info("Start inferencing")
-    evaluator = create_supervised_evaluator(model, metrics={'accuracy': Accuracy()},
-                                            device=device)
+    evaluator = create_supervised_evaluator(
+        model, metrics={
+            'loss': Loss(F.mse_loss)
+        },
+        device=device)
 
     # adding handlers using `evaluator.on` decorator API
     @evaluator.on(Events.EPOCH_COMPLETED)
     def print_validation_results(engine):
         metrics = evaluator.state.metrics
-        avg_acc = metrics['accuracy']
-        logger.info("Validation Results - Accuracy: {:.3f}".format(avg_acc))
+        avg_loss = metrics['loss']
+        logger.info("Validation Results - Loss: {:.3f}".format(avg_loss))
 
     evaluator.run(val_loader)

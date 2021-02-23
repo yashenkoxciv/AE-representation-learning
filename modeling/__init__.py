@@ -4,9 +4,9 @@
 @contact: sherlockliao01@gmail.com
 """
 
-from .example_model import ResNet18
+from .baseline_ae import ResNet18AE
 
 
 def build_model(cfg):
-    model = ResNet18(cfg.MODEL.NUM_CLASSES)
+    model = ResNet18AE(z_dim=1024, pretrained_backbone=True, fine_tuning=True)
     return model

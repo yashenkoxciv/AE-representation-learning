@@ -1,4 +1,4 @@
-from yacs.config import CfgNode as CN
+from yacs.config import CfgNode
 
 # -----------------------------------------------------------------------------
 # Convention about Training / Test specific parameters
@@ -14,20 +14,22 @@ from yacs.config import CfgNode as CN
 # Config definition
 # -----------------------------------------------------------------------------
 
-_C = CN()
+_C = CfgNode()
 
-_C.MODEL = CN()
-_C.MODEL.DEVICE = "cuda"
-_C.MODEL.NUM_CLASSES = 10
+_C.MODEL = CfgNode()
+_C.MODEL.DEVICE = 'cuda'
+# AE is unsupervised so we do not need number of classes
+#_C.MODEL.NUM_CLASSES = 10
 
 # -----------------------------------------------------------------------------
 # INPUT
 # -----------------------------------------------------------------------------
-_C.INPUT = CN()
+_C.INPUT = CfgNode()
 # Size of the image during training
-_C.INPUT.SIZE_TRAIN = 32
+_C.INPUT.SIZE_TRAIN = 224
 # Size of the image during test
-_C.INPUT.SIZE_TEST = 32
+# use bigger images (256) with center crop
+_C.INPUT.SIZE_TEST = 224 #256
 # Minimum scale for the image during training
 _C.INPUT.MIN_SCALE_TRAIN = 0.5
 # Maximum scale for the image during test
@@ -35,31 +37,51 @@ _C.INPUT.MAX_SCALE_TRAIN = 1.2
 # Random probability for image horizontal flip
 _C.INPUT.PROB = 0.5
 # Values to be used for image normalization
-_C.INPUT.PIXEL_MEAN = [0.1307, ]
+_C.INPUT.PIXEL_MEAN = [0.485, 0.456, 0.406]
 # Values to be used for image normalization
-_C.INPUT.PIXEL_STD = [0.3081, ]
+_C.INPUT.PIXEL_STD = [0.229, 0.224, 0.225]
+
+# -----------------------------------------------------------------------------
+# RECONSTRUCTION
+# -----------------------------------------------------------------------------
+_C.RECONSTRUCTION = CfgNode()
+# Size of the image during training
+_C.RECONSTRUCTION.SIZE_TRAIN = 64
+# Size of the image during test
+# use bigger images (256) with center crop
+_C.RECONSTRUCTION.SIZE_TEST = 64 #256
+# Minimum scale for the image during training
+_C.RECONSTRUCTION.MIN_SCALE_TRAIN = 0.5
+# Maximum scale for the image during test
+_C.RECONSTRUCTION.MAX_SCALE_TRAIN = 1.2
+# Random probability for image horizontal flip
+_C.RECONSTRUCTION.PROB = 0.5
+# Values to be used for image normalization
+_C.RECONSTRUCTION.PIXEL_MEAN = [0.485, 0.456, 0.406]
+# Values to be used for image normalization
+_C.RECONSTRUCTION.PIXEL_STD = [0.229, 0.224, 0.225]
 
 # -----------------------------------------------------------------------------
 # Dataset
 # -----------------------------------------------------------------------------
-_C.DATASETS = CN()
+_C.DATASETS = CfgNode()
 # List of the dataset names for training, as present in paths_catalog.py
-_C.DATASETS.TRAIN = ()
+_C.DATASETS.TRAIN_ROOT = ''
 # List of the dataset names for testing, as present in paths_catalog.py
-_C.DATASETS.TEST = ()
+_C.DATASETS.TEST_ROOT = ''
 
 # -----------------------------------------------------------------------------
 # DataLoader
 # -----------------------------------------------------------------------------
-_C.DATALOADER = CN()
+_C.DATALOADER = CfgNode()
 # Number of data loading threads
 _C.DATALOADER.NUM_WORKERS = 8
 
 # ---------------------------------------------------------------------------- #
 # Solver
 # ---------------------------------------------------------------------------- #
-_C.SOLVER = CN()
-_C.SOLVER.OPTIMIZER_NAME = "SGD"
+_C.SOLVER = CfgNode()
+_C.SOLVER.OPTIMIZER_NAME = 'SGD'
 
 _C.SOLVER.MAX_EPOCHS = 50
 
@@ -76,7 +98,7 @@ _C.SOLVER.STEPS = (30000,)
 
 _C.SOLVER.WARMUP_FACTOR = 1.0 / 3
 _C.SOLVER.WARMUP_ITERS = 500
-_C.SOLVER.WARMUP_METHOD = "linear"
+_C.SOLVER.WARMUP_METHOD = 'linear'
 
 _C.SOLVER.CHECKPOINT_PERIOD = 10
 _C.SOLVER.LOG_PERIOD = 100
@@ -88,11 +110,13 @@ _C.SOLVER.IMS_PER_BATCH = 16
 
 # This is global, so if we have 8 GPUs and IMS_PER_BATCH = 16, each GPU will
 # see 2 images per batch
-_C.TEST = CN()
-_C.TEST.IMS_PER_BATCH = 8
-_C.TEST.WEIGHT = ""
+_C.TEST = CfgNode()
+_C.TEST.IMS_PER_BATCH = 16
+_C.TEST.WEIGHT = ''
 
 # ---------------------------------------------------------------------------- #
 # Misc options
 # ---------------------------------------------------------------------------- #
-_C.OUTPUT_DIR = ""
+_C.OUTPUT_ROOT = ''
+_C.PROJECT_NAME = 'AE-REL'
+_C.EXPERIMENT_NAME = ''

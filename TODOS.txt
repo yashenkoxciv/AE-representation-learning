@@ -1,0 +1,5 @@
+* multi backbones
+* add denoise feature
+* add keypoints distilation with SuperPoint
+* maybe discriminator network
+* finetuning encoder

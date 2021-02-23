@@ -4,53 +4,29 @@
 @contact: sherlockliao01@gmail.com
 """
 
-import argparse
 import os
 import sys
+import argparse
 from os import mkdir
 
-import torch.nn.functional as F
+import torch
 
 sys.path.append('.')
 from config import cfg
-from data import make_data_loader
-from engine.example_trainer import do_train
 from modeling import build_model
-from solver import make_optimizer
-
+from data import make_data_loader
 from utils.logger import setup_logger
-
-
-def train(cfg):
-    model = build_model(cfg)
-    device = cfg.MODEL.DEVICE
-
-    optimizer = make_optimizer(cfg, model)
-    scheduler = None
-
-    arguments = {}
-
-    train_loader = make_data_loader(cfg, is_train=True)
-    val_loader = make_data_loader(cfg, is_train=False)
-
-    do_train(
-        cfg,
-        model,
-        train_loader,
-        val_loader,
-        optimizer,
-        None,
-        F.cross_entropy,
-    )
+from engine.inference import inference
 
 
 def main():
-    parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
+    parser = argparse.ArgumentParser(description="PyTorch Template MNIST Inference")
     parser.add_argument(
-        "--config_file", default="", help="path to config file", type=str
+        "--config-file", default="", help="path to config file", type=str
     )
-    parser.add_argument("opts", help="Modify config options using the command-line", default=None,
-                        nargs=argparse.REMAINDER)
+    parser.add_argument(
+        "opts", help="Modify config options using the command-line", default=None, nargs=argparse.REMAINDER
+    )
 
     args = parser.parse_args()
 
@@ -61,7 +37,7 @@ def main():
     cfg.merge_from_list(args.opts)
     cfg.freeze()
 
-    output_dir = cfg.OUTPUT_DIR
+    output_dir = os.path.join(cfg.OUTPUT_ROOT, cfg.PROJECT_NAME, cfg.EXPERIMENT_NAME)
     if output_dir and not os.path.exists(output_dir):
         mkdir(output_dir)
 
@@ -76,7 +52,11 @@ def main():
             logger.info(config_str)
     logger.info("Running with config:\n{}".format(cfg))
 
-    train(cfg)
+    model = build_model(cfg).to(cfg.MODEL.DEVICE)
+    model.load_state_dict(torch.load(cfg.TEST.WEIGHT)['model'])
+    val_loader = make_data_loader(cfg, is_train=False)
+
+    inference(cfg, model, val_loader)
 
 
 if __name__ == '__main__':

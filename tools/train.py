@@ -7,22 +7,47 @@
 import argparse
 import os
 import sys
-from os import mkdir
+from os import makedirs
 
-import torch
+import torch.nn.functional as F
 
 sys.path.append('.')
 from config import cfg
 from data import make_data_loader
-from engine.example_inference import inference
+from engine.trainer import do_train
 from modeling import build_model
+from solver import make_optimizer
+
 from utils.logger import setup_logger
 
 
+def train(cfg):
+    model = build_model(cfg).to(cfg.MODEL.DEVICE)
+    device = cfg.MODEL.DEVICE
+
+    optimizer = make_optimizer(cfg, model)
+    scheduler = None
+
+    arguments = {}
+
+    train_loader = make_data_loader(cfg, is_train=True)
+    val_loader = make_data_loader(cfg, is_train=False)
+
+    do_train(
+        cfg,
+        model,
+        train_loader,
+        val_loader,
+        optimizer,
+        None,
+        F.mse_loss,
+    )
+
+
 def main():
-    parser = argparse.ArgumentParser(description="PyTorch Template MNIST Inference")
+    parser = argparse.ArgumentParser(description="PyTorch Template MNIST Training")
     parser.add_argument(
-        "--config_file", default="", help="path to config file", type=str
+        "--config-file", default="", help="path to config file", type=str
     )
     parser.add_argument("opts", help="Modify config options using the command-line", default=None,
                         nargs=argparse.REMAINDER)
@@ -36,11 +61,10 @@ def main():
     cfg.merge_from_list(args.opts)
     cfg.freeze()
 
-    output_dir = cfg.OUTPUT_DIR
-    if output_dir and not os.path.exists(output_dir):
-        mkdir(output_dir)
+    output_dir = os.path.join(cfg.OUTPUT_ROOT, cfg.PROJECT_NAME, cfg.EXPERIMENT_NAME)
+    makedirs(output_dir, exist_ok=True)
 
-    logger = setup_logger("template_model", output_dir, 0)
+    logger = setup_logger(cfg.EXPERIMENT_NAME, output_dir, 0)
     logger.info("Using {} GPUS".format(num_gpus))
     logger.info(args)
 
@@ -51,11 +75,7 @@ def main():
             logger.info(config_str)
     logger.info("Running with config:\n{}".format(cfg))
 
-    model = build_model(cfg)
-    model.load_state_dict(torch.load(cfg.TEST.WEIGHT))
-    val_loader = make_data_loader(cfg, is_train=False)
-
-    inference(cfg, model, val_loader)
+    train(cfg)
 
 
 if __name__ == '__main__':
